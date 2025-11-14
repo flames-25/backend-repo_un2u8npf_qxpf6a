@@ -8,7 +8,7 @@ from bson import ObjectId
 # Database helpers
 from database import create_document, get_documents, db
 
-app = FastAPI(title="NovaStudio AI - Video Creation Platform", version="0.1.0")
+app = FastAPI(title="NovaStudio AI - Video Creation Platform", version="0.1.1")
 
 app.add_middleware(
     CORSMiddleware,
@@ -217,6 +217,18 @@ def list_projects(limit: int = 100):
     items = get_documents("project", {}, limit)
     return [to_str_id(i) for i in items]
 
+@app.get("/api/projects/{project_id}")
+def get_project(project_id: str):
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database not available")
+    try:
+        doc = db["project"].find_one({"_id": ObjectId(project_id)})
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid project id")
+    if not doc:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return to_str_id(doc)
+
 
 # --------------------
 # AI Workflows (MVP stubs)
@@ -289,6 +301,23 @@ def avatar_generate(req: AvatarGenerateRequest):
     media = Media(kind="avatar", source_url=req.image_url, metadata={"name": req.name, "style": req.style, "emotions": req.emotions})
     media_id = create_document("media", media)
     return {"avatar_id": media_id, "preview_url": "https://storage.googleapis.com/vr-demo-assets/avatar-preview.gif"}
+
+
+# --------------------
+# Render Jobs (lookup)
+# --------------------
+
+@app.get("/api/renderjobs/{job_id}")
+def get_render_job(job_id: str):
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database not available")
+    try:
+        doc = db["renderjob"].find_one({"_id": ObjectId(job_id)})
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid job id")
+    if not doc:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return to_str_id(doc)
 
 
 # --------------------
